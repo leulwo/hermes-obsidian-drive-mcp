@@ -1,0 +1,14 @@
+mcp_servers:
+  obsidian:
+    command: "node"
+    args:
+      - "/opt/hermes-obsidian-drive-mcp/dist/src/index.js"
+    cwd: "/opt/hermes-obsidian-drive-mcp"
+    trust: untrusted
+    enabled: true
+    timeout: 300
+    connect_timeout: 60
+    supports_parallel_tool_calls: false
+    tools:
+      resources: false
+      prompts: false
