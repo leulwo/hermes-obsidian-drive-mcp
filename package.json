@@ -1,0 +1,41 @@
+{
+  "name": "hermes-obsidian-drive-mcp",
+  "version": "1.1.0",
+  "description": "Hermes-first MCP bridge for Obsidian vaults synced by Richard Xiong's Google Drive Sync plugin",
+  "author": "VaporGrid",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leulwo/hermes-obsidian-drive-mcp.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/launcher.js",
+    "auth": "tsx src/auth.ts",
+    "setup": "tsx src/setup.ts",
+    "test": "tsx --test test/*.test.ts",
+    "test:integration": "tsx src/integration-test.ts",
+    "doctor": "tsx src/doctor.ts",
+    "version:patch": "npm version patch --no-git-tag-version && node scripts/sync-version.mjs",
+    "version:minor": "npm version minor --no-git-tag-version && node scripts/sync-version.mjs",
+    "version:major": "npm version major --no-git-tag-version && node scripts/sync-version.mjs",
+    "update:check": "tsx src/update.ts --check",
+    "update": "tsx src/update.ts --apply"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.1.0",
+    "google-auth-library": "^11.0.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "tsx": "^4.20.6",
+    "typescript": "^6.0.0"
+  }
+}
