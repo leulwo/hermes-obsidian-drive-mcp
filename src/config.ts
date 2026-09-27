@@ -8,6 +8,7 @@ export interface PersistentConfig {
   vaultName?: string;
   timezone?: string;
   allowDelete?: boolean;
+  autoUpdate?: boolean;
 }
 
 export interface RuntimeConfig extends Required<Omit<PersistentConfig, 'vaultName' | 'googleClientId' | 'googleClientSecret'>> {
@@ -94,7 +95,8 @@ export function resolveConfig(env: NodeJS.ProcessEnv = process.env, persisted = 
     configFile: paths.configFile,
     vaultName: env.OBSIDIAN_VAULT_NAME?.trim() || persisted.vaultName?.trim() || undefined,
     timezone,
-    allowDelete: envBool(env.OBSIDIAN_ALLOW_DELETE, persisted.allowDelete ?? false),
+    allowDelete: envBool(env.OBSIDIAN_ALLOW_DELETE, persisted.allowDelete ?? true),
+    autoUpdate: envBool(env.OBSIDIAN_MCP_AUTO_UPDATE, persisted.autoUpdate ?? false),
     maxNoteBytes: envInt(env.OBSIDIAN_MAX_NOTE_BYTES, 4 * 1024 * 1024),
     searchConcurrency: envInt(env.OBSIDIAN_SEARCH_CONCURRENCY, 8),
     searchMaxFiles: envInt(env.OBSIDIAN_SEARCH_MAX_FILES, 5000),

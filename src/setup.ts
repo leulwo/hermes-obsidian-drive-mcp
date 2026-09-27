@@ -52,13 +52,15 @@ async function main() {
   const clientId = await ask('Google OAuth Client ID: ', config.googleClientId);
   const clientSecret = await askSecret('Google OAuth Client Secret: ');
   const timezone = normalizeTimezone(await ask(`Timezone (IANA or UTC offset, e.g. +4) [${config.timezone}]: `, config.timezone));
+  const autoUpdateAnswer = (await ask(`Automatically install stable GitHub releases at startup? [${config.autoUpdate ? 'Y/n' : 'y/N'}]: `, config.autoUpdate ? 'y' : 'n')).toLowerCase();
+  const autoUpdate = ['y', 'yes', 'true', '1'].includes(autoUpdateAnswer);
   if (!/^[+-]\d{2}:\d{2}$/.test(timezone)) {
     try { new Intl.DateTimeFormat('en', { timeZone: timezone }); }
     catch { throw new Error(`Invalid IANA timezone or UTC offset: ${timezone}`); }
   }
   if (!clientId || !clientSecret) throw new Error('Client ID and client secret are required.');
 
-  await savePersistentConfig({ googleClientId: clientId, googleClientSecret: clientSecret, timezone }, config.configFile);
+  await savePersistentConfig({ googleClientId: clientId, googleClientSecret: clientSecret, timezone, autoUpdate }, config.configFile);
   reloadConfig();
   console.log('\nOpening Google authorization...');
   await runAuth();
@@ -78,6 +80,7 @@ async function main() {
   reloadConfig();
   console.log(`\n✓ Selected “${selected.name}”`);
   console.log(`✓ Configuration saved to ${config.configFile}`);
+  console.log(`✓ GitHub release auto-update: ${autoUpdate ? 'enabled' : 'disabled'}`);
   console.log('\nSetup complete. Next run: npm run doctor');
 }
 

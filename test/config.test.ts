@@ -9,6 +9,7 @@ import { isVaultFile, selectVault, type DriveFile } from '../src/drive.js';
 import { assertDeleteEnabled, assertVersion, replaceExact } from '../src/note-ops.js';
 import { basename, dirname } from '../src/path.js';
 import { formatInTimezone, timeContext } from '../src/time.js';
+import { compareSemVer, parseSemVer } from '../src/update.js';
 
 test('explicit environment overrides persisted configuration and defaults', () => {
   const resolved = resolveConfig({ GOOGLE_CLIENT_ID: 'env-id', OBSIDIAN_TIMEZONE: 'UTC', OBSIDIAN_ALLOW_DELETE: 'false' }, {
@@ -19,7 +20,21 @@ test('explicit environment overrides persisted configuration and defaults', () =
   assert.equal(resolved.vaultName, 'Saved Vault');
   assert.equal(resolved.timezone, 'UTC');
   assert.equal(resolved.allowDelete, false);
+  assert.equal(resolved.autoUpdate, false);
+  assert.equal(resolveConfig({ OBSIDIAN_MCP_AUTO_UPDATE: 'true' }, { autoUpdate: false }).autoUpdate, true);
+  assert.equal(resolveConfig({}, { autoUpdate: true }).autoUpdate, true);
   assert.equal(resolveConfig({}, {}).timezone, 'UTC');
+  assert.equal(resolveConfig({}, {}).allowDelete, true);
+  assert.equal(resolveConfig({}, { allowDelete: false }).allowDelete, false);
+  assert.equal(resolveConfig({ OBSIDIAN_ALLOW_DELETE: 'false' }, {}).allowDelete, false);
+});
+
+test('release versions use stable SemVer ordering', () => {
+  assert.deepEqual(parseSemVer('v1.2.0'), { major: 1, minor: 2, patch: 0 });
+  assert.equal(compareSemVer('1.2.0', '1.1.9'), 1);
+  assert.equal(compareSemVer('2.0.0', '1.99.99'), 1);
+  assert.equal(compareSemVer('1.2.0', '1.2.0'), 0);
+  assert.equal(parseSemVer('1.2'), undefined);
 });
 
 test('invalid timezone fails configuration loading', () => {
@@ -77,8 +92,9 @@ test('MCP process starts with persisted credentials and no GOOGLE credential env
   const env: NodeJS.ProcessEnv = { ...process.env, OBSIDIAN_MCP_CONFIG_FILE: configFile, OBSIDIAN_MCP_TOKEN_FILE: tokenFile };
   delete env.GOOGLE_CLIENT_ID;
   delete env.GOOGLE_CLIENT_SECRET;
+  delete env.OBSIDIAN_MCP_AUTO_UPDATE;
   try {
-    const child = spawn(process.execPath, [path.join(process.cwd(), 'dist/src/index.js')], { cwd: process.cwd(), env, stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, [path.join(process.cwd(), 'dist/src/launcher.js')], { cwd: process.cwd(), env, stdio: ['pipe', 'pipe', 'pipe'] });
     await new Promise<void>((resolve, reject) => {
       let output = '';
       const timeout = setTimeout(() => {
@@ -95,6 +111,11 @@ test('MCP process starts with persisted credentials and no GOOGLE credential env
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
 
+test('MCP does not register a Drive-side create-note tool', async () => {
+  const source = await fs.readFile(new URL('../src/index.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /registerTool\(['"]create_note['"]/);
+});
+
 test('exact patch fails on zero or ambiguous matches and replaces one match', () => {
   assert.throws(() => replaceExact('alpha', 'missing', 'x'), /not found/);
   assert.deepEqual(replaceExact('alpha beta', 'beta', 'gamma'), { content: 'alpha gamma', replacements: 1 });
@@ -102,7 +123,7 @@ test('exact patch fails on zero or ambiguous matches and replaces one match', ()
   assert.deepEqual(replaceExact('x x', 'x', 'y', true), { content: 'y y', replacements: 2 });
 });
 
-test('stale versions are rejected and delete is disabled by default', () => {
+test('stale versions are rejected and delete can be explicitly disabled', () => {
   assert.throws(() => assertVersion('42', '43', 'Note.md'), /Conflict: Note.md/);
   assert.doesNotThrow(() => assertVersion('42', '42', 'Note.md'));
   assert.throws(() => assertDeleteEnabled(false), /Deletion is disabled/);

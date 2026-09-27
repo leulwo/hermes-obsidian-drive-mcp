@@ -11,7 +11,7 @@ import { replaceExact } from './note-ops.js';
 const auth = await createAuthedClient();
 const drive = new DriveBridge(auth);
 const server = new McpServer(
-  { name: 'hermes-obsidian-drive', version: '0.1.0' },
+  { name: 'hermes-obsidian-drive', version: '1.1.1' },
   {
     instructions:
       'This server edits the live Google Drive representation used by Richard Xiong Google Drive Sync. Call vault_context when vault identity, local time, or recent context matters. Search before opening many notes; do not guess paths when listing or search can resolve them. Read before modifying, carry the returned version, prefer patch_note for small edits and append_note for journals/logs, and use write_note only for intentional full replacement. On conflict, reread and reconcile the newer content. Do not delete unless explicitly asked. A Drive write may not appear on a phone/PC until Richard’s plugin pulls changes.',
@@ -151,12 +151,6 @@ server.registerTool('recent_changes', {
   return { since_utc: new Date(sinceUtc).toISOString(), now: timeContext(config.timezone), count: files.length, changes: files.map(withLocalTime) };
 }));
 
-server.registerTool('create_note', {
-  description: 'Create a new Markdown note and any missing parent folders using Richard-compatible Drive metadata. Fails if the path already exists.',
-  inputSchema: z.object({ path: z.string().min(1), content: z.string().default('') }),
-  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-}, async ({ path, content }) => safeTool(async () => ({ action: 'created', ...withLocalTime(await drive.createNote(path, content)) })));
-
 const writeSchema = z.object({
   path: z.string().min(1),
   content: z.string(),
@@ -227,7 +221,7 @@ server.registerTool('note_history', {
 }, async ({ path, limit }) => safeTool(async () => ({ path: normalizeVaultPath(path, { requireMarkdown: true }), revisions: await drive.revisions(path, limit) })));
 
 server.registerTool('delete_note', {
-  description: 'Move a note to Google Drive trash so Richard sync can propagate its deletion. Disabled by default; requires OBSIDIAN_ALLOW_DELETE=true and optionally an expected_version conflict guard.',
+  description: 'Move a note to Google Drive trash so Richard sync can propagate its deletion. Enabled by default; set OBSIDIAN_ALLOW_DELETE=false to disable. Use only when the user explicitly requests deletion; optionally pass expected_version as a conflict guard.',
   inputSchema: z.object({ path: z.string().min(1), expected_version: z.string().optional() }),
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
 }, async ({ path, expected_version }) => safeTool(async () => {

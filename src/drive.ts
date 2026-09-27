@@ -217,7 +217,7 @@ export class DriveBridge {
     );
   }
 
-  private async multipartUpload(method: 'POST' | 'PATCH', id: string | undefined, metadata: object, content: string): Promise<DriveFile> {
+  private async multipartUpload(id: string, metadata: object, content: string): Promise<DriveFile> {
     const boundary = `hermes_${crypto.randomUUID()}`;
     const metadataJson = JSON.stringify(metadata);
     const body = Buffer.concat([
@@ -226,32 +226,13 @@ export class DriveBridge {
       Buffer.from(content, 'utf8'),
       Buffer.from(`\r\n--${boundary}--\r\n`),
     ]);
-    const base = id
-      ? `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(id)}`
-      : 'https://www.googleapis.com/upload/drive/v3/files';
+    const base = `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(id)}`;
     const params = new URLSearchParams({ uploadType: 'multipart', fields: this.fields() });
     return this.request<DriveFile>(`${base}?${params}`, {
-      method,
+      method: 'PATCH',
       headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
       body,
     });
-  }
-
-  async createNote(rawPath: string, content: string): Promise<DriveFile> {
-    const vault = await this.vault();
-    const p = normalizeVaultPath(rawPath, { requireMarkdown: true });
-    const existing = await this.fileByPath(p);
-    if (existing) throw new Error(`A vault item already exists at ${p}. Use write_note to update it.`);
-    if (Buffer.byteLength(content, 'utf8') > config.maxNoteBytes) throw new Error('Content exceeds OBSIDIAN_MAX_NOTE_BYTES.');
-    const parent = await this.ensureFolder(dirname(p));
-    const now = new Date().toISOString();
-    return this.multipartUpload('POST', undefined, {
-      name: basename(p),
-      mimeType: 'text/markdown',
-      parents: [parent.id],
-      properties: { ...splitPath(p), vault: vault.name },
-      modifiedTime: now,
-    }, content);
   }
 
   async assertFresh(file: DriveFile, expectedVersion?: string, expectedModifiedTime?: string): Promise<DriveFile> {
@@ -270,10 +251,10 @@ export class DriveBridge {
   ): Promise<DriveFile> {
     const p = normalizeVaultPath(rawPath, { requireMarkdown: true });
     const file = await this.fileByPath(p);
-    if (!file || file.mimeType === FOLDER_MIME) throw new Error(`Note not found: ${p}. Use create_note first.`);
+    if (!file || file.mimeType === FOLDER_MIME) throw new Error(`Note not found: ${p}. This connector edits existing notes only; create new notes in Obsidian and push them with Richard's plugin first.`);
     if (Buffer.byteLength(content, 'utf8') > config.maxNoteBytes) throw new Error('Content exceeds OBSIDIAN_MAX_NOTE_BYTES.');
     await this.assertFresh(file, options.expectedVersion, options.expectedModifiedTime);
-    return this.multipartUpload('PATCH', file.id, { modifiedTime: new Date().toISOString() }, content);
+    return this.multipartUpload(file.id, { modifiedTime: new Date().toISOString() }, content);
   }
 
   async moveNote(

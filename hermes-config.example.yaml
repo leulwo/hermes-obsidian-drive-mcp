@@ -2,7 +2,7 @@ mcp_servers:
   obsidian:
     command: "node"
     args:
-      - "/opt/hermes-obsidian-drive-mcp/dist/src/index.js"
+      - "/opt/hermes-obsidian-drive-mcp/dist/src/launcher.js"
     cwd: "/opt/hermes-obsidian-drive-mcp"
     trust: untrusted
     enabled: true

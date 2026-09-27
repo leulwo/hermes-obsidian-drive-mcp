@@ -13,5 +13,5 @@ export function assertVersion(expected: string | undefined, actual: string | und
 }
 
 export function assertDeleteEnabled(enabled: boolean): void {
-  if (!enabled) throw new Error('Deletion is disabled. Set OBSIDIAN_ALLOW_DELETE=true to enable delete_note.');
+  if (!enabled) throw new Error('Deletion is disabled. Set OBSIDIAN_ALLOW_DELETE=true or allowDelete=true in config.json to enable delete_note.');
 }
